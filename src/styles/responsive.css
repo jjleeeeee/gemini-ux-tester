@@ -1,0 +1,745 @@
+/* Responsive Design System - 모바일 퍼스트 접근법 */
+
+/* CSS Custom Properties for Responsive Values */
+:root {
+  /* Breakpoints */
+  --mobile-max: 767px;
+  --tablet-min: 768px;
+  --tablet-max: 1023px;
+  --desktop-min: 1024px;
+  --large-desktop-min: 1440px;
+  
+  /* Spacing Scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  
+  /* Touch Target Sizes */
+  --touch-target-min: 44px;
+  --touch-target-comfortable: 48px;
+  --touch-target-large: 56px;
+  
+  /* Typography Scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  
+  /* Container Widths */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
+  
+  /* Grid Columns */
+  --grid-cols-mobile: 1;
+  --grid-cols-tablet: 2;
+  --grid-cols-desktop: 3;
+  --grid-cols-large: 4;
+}
+
+/* Base Mobile Styles (320px+) */
+.responsive-container {
+  width: 100%;
+  max-width: var(--container-2xl);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-cols-mobile), 1fr);
+  gap: var(--space-md);
+  width: 100%;
+}
+
+.responsive-flex {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Touch-Friendly Interactive Elements */
+.touch-target {
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  
+  /* Touch feedback */
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+}
+
+.touch-target:active {
+  transform: scale(0.98);
+}
+
+/* Enhanced Button Touch Targets */
+.touch-button {
+  min-height: var(--touch-target-comfortable);
+  padding: var(--space-sm) var(--space-lg);
+  border: none;
+  border-radius: 12px;
+  font-size: var(--text-base);
+  font-weight: 600;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.touch-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.touch-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Enhanced Swipe Gesture Support */
+.swipe-container {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  position: relative;
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  /* Touch optimization */
+  touch-action: pan-x;
+  cursor: grab;
+}
+
+.swipe-container:active {
+  cursor: grabbing;
+}
+
+.swipe-container::-webkit-scrollbar {
+  display: none;
+}
+
+.swipe-item {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  min-width: 280px;
+  transition: transform 0.2s ease;
+}
+
+.swipe-item:active {
+  transform: scale(0.98);
+}
+
+/* Swipe indicator dots */
+.swipe-indicators {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+
+.swipe-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #dee2e6;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swipe-dot.active {
+  background-color: #007bff;
+  transform: scale(1.2);
+}
+
+.swipe-dot::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: inherit;
+}
+
+/* Mobile Keyboard Optimization */
+.keyboard-aware {
+  transition: all 0.3s ease;
+}
+
+/* iOS specific fixes */
+@supports (-webkit-appearance: none) {
+  .ios-fix {
+    -webkit-appearance: none;
+    -webkit-border-radius: 0;
+  }
+  
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    -webkit-appearance: none;
+    border-radius: 8px;
+  }
+}
+
+/* Tablet Styles (768px - 1023px) */
+@media (min-width: 768px) {
+  :root {
+    --space-md: 1.5rem;
+    --space-lg: 2rem;
+    --space-xl: 2.5rem;
+  }
+  
+  .responsive-container {
+    padding: 0 var(--space-xl);
+  }
+  
+  .responsive-grid {
+    grid-template-columns: repeat(var(--grid-cols-tablet), 1fr);
+    gap: var(--space-lg);
+  }
+  
+  .responsive-flex {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-lg);
+  }
+  
+  /* Two-column layout for tablets */
+  .tablet-two-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+  }
+  
+  .touch-button {
+    min-height: var(--touch-target-min);
+    padding: var(--space-sm) var(--space-md);
+  }
+}
+
+/* Desktop Styles (1024px+) */
+@media (min-width: 1024px) {
+  :root {
+    --space-md: 2rem;
+    --space-lg: 2.5rem;
+    --space-xl: 3rem;
+  }
+  
+  .responsive-grid {
+    grid-template-columns: repeat(var(--grid-cols-desktop), 1fr);
+    gap: var(--space-xl);
+  }
+  
+  /* Three-column layout for desktop */
+  .desktop-three-column {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: var(--space-xl);
+  }
+  
+  /* Hover states for non-touch devices */
+  @media (hover: hover) and (pointer: fine) {
+    .touch-target:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .touch-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+  }
+}
+
+/* Large Desktop Styles (1440px+) */
+@media (min-width: 1440px) {
+  .responsive-grid {
+    grid-template-columns: repeat(var(--grid-cols-large), 1fr);
+  }
+  
+  /* Four-column layout for large screens */
+  .large-desktop-four-column {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-xl);
+  }
+}
+
+/* High DPI Display Optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .high-dpi-image {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Landscape Orientation Specific */
+@media (orientation: landscape) and (max-height: 500px) {
+  .landscape-optimize {
+    padding-top: var(--space-sm);
+    padding-bottom: var(--space-sm);
+  }
+  
+  .responsive-container {
+    padding: 0 var(--space-lg);
+  }
+}
+
+/* Portrait Orientation Specific */
+@media (orientation: portrait) {
+  .portrait-stack {
+    flex-direction: column;
+  }
+}
+
+/* Safe Area Support for Notched Devices */
+@supports (padding: max(0px)) {
+  .safe-area-container {
+    padding-left: max(var(--space-md), env(safe-area-inset-left));
+    padding-right: max(var(--space-md), env(safe-area-inset-right));
+    padding-top: max(var(--space-md), env(safe-area-inset-top));
+    padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
+  }
+}
+
+/* Print Styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-optimize {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  .touch-target,
+  .touch-button,
+  .swipe-container {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .touch-target,
+  .touch-button {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Dark Mode Responsive Adjustments */
+@media (prefers-color-scheme: dark) {
+  .touch-target {
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Mobile Navigation Components */
+.mobile-nav-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-sm);
+  border-radius: 8px;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  position: relative;
+}
+
+.hamburger {
+  width: 24px;
+  height: 18px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hamburger-line {
+  width: 100%;
+  height: 2px;
+  background-color: currentColor;
+  border-radius: 1px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+.mobile-nav-toggle.active .hamburger-line:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.mobile-nav-toggle.active .hamburger-line:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.mobile-nav-toggle.active .hamburger-line:nth-child(3) {
+  transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* Mobile Navigation Menu */
+.mobile-nav-menu {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: -100%;
+  width: 280px;
+  height: 100vh;
+  background: #ffffff;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-nav-menu.active {
+  left: 0;
+}
+
+.mobile-nav-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mobile-nav-overlay.active {
+  opacity: 1;
+}
+
+.mobile-nav-header {
+  padding: var(--space-lg);
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-nav-close {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: var(--space-sm);
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.mobile-nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mobile-nav-item {
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.mobile-nav-link {
+  display: block;
+  padding: var(--space-md) var(--space-lg);
+  color: #495057;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.mobile-nav-link:active {
+  background-color: #f8f9fa;
+  transform: scale(0.98);
+}
+
+/* Loading States for Touch Devices */
+.touch-loading {
+  pointer-events: none;
+  opacity: 0.6;
+  position: relative;
+}
+
+.touch-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Utility Classes */
+.mobile-only {
+  display: block;
+}
+
+.tablet-only,
+.desktop-only,
+.large-desktop-only {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobile-nav-toggle,
+  .mobile-nav-menu,
+  .mobile-nav-overlay {
+    display: block;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none;
+  }
+  
+  .tablet-only {
+    display: block;
+  }
+  
+  .mobile-nav-toggle,
+  .mobile-nav-menu,
+  .mobile-nav-overlay {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tablet-only {
+    display: none;
+  }
+  
+  .desktop-only {
+    display: block;
+  }
+}
+
+@media (min-width: 1440px) {
+  .desktop-only {
+    display: none;
+  }
+  
+  .large-desktop-only {
+    display: block;
+  }
+}
+
+/* Focus Indicators for Touch Navigation */
+.touch-focus:focus-visible {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.25);
+}
+
+/* Pull-to-Refresh Support */
+.pull-to-refresh {
+  position: relative;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pull-indicator {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #007bff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.3s ease;
+  opacity: 0;
+}
+
+.pull-indicator.active {
+  opacity: 1;
+  top: 20px;
+}
+
+/* Infinite Scroll Loading */
+.infinite-scroll-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-lg);
+  min-height: 60px;
+}
+
+.infinite-scroll-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e9ecef;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Sticky Elements for Mobile */
+.mobile-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: inherit;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Mobile-Optimized Cards */
+.mobile-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.mobile-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Bottom Sheet Component */
+.bottom-sheet {
+  position: fixed;
+  bottom: -100%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 80vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bottom-sheet.active {
+  bottom: 0;
+}
+
+.bottom-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #dee2e6;
+  border-radius: 2px;
+  margin: var(--space-md) auto var(--space-sm);
+  cursor: grab;
+}
+
+.bottom-sheet-handle:active {
+  cursor: grabbing;
+}
+
+.bottom-sheet-content {
+  padding: 0 var(--space-lg) var(--space-lg);
+}
+
+/* Floating Action Button */
+.fab {
+  position: fixed;
+  bottom: var(--space-xl);
+  right: var(--space-lg);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #007bff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 100;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.fab:active {
+  transform: scale(0.9);
+}
+
+/* Skip Link for Accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: #000;
+  color: #fff;
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 9999;
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
