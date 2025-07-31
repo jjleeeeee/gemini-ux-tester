@@ -16,6 +16,13 @@ export class AuthService {
   }
 
   static getApiKey(): string | null {
+    // 먼저 환경변수에서 확인
+    const envApiKey = process.env.REACT_APP_GEMINI_API_KEY;
+    if (envApiKey && envApiKey.trim() !== '') {
+      return envApiKey.trim();
+    }
+    
+    // 환경변수에 없으면 로컬스토리지에서 확인
     return secureStorage.getItem(this.API_KEY_STORAGE_KEY);
   }
 
@@ -59,6 +66,12 @@ export class AuthService {
     // 저장된 API 키의 기본 형식 검증
     const validation = validateApiKey(apiKey);
     return validation.isValid;
+  }
+
+  // 환경변수 API 키 사용 여부 확인
+  static isUsingEnvApiKey(): boolean {
+    const envApiKey = process.env.REACT_APP_GEMINI_API_KEY;
+    return !!(envApiKey && envApiKey.trim() !== '');
   }
 }
 
