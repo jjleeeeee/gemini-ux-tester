@@ -59,6 +59,12 @@ archive/                    # 완료된 계획서들 (선택사항)
 - **목표**: 클릭 선택 기능 수정 + 모바일 카메라/갤러리 접근
 - **예상 소요 시간**: 3시간
 
+### 🖼️ 이미지 압축 최적화 (계획 수립 완료)
+- **계획서**: [features/image-compression-optimization-plan.md](./features/image-compression-optimization-plan.md)
+- **목표**: API 500 에러 해결 + UX 분석 품질 유지
+- **예상 소요 시간**: 8.5시간
+- **우선순위**: 🔴 높음 (현재 서비스 장애)
+
 ---
 
 **💡 팁**: 각 프로젝트마다 summary.md에서 implementation-guide.md로 링크를 연결하여 문서 간 연결성을 유지하세요.
