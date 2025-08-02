@@ -414,7 +414,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           
           {/* 업로드 안내 */}
           {images.length === 0 && (
-            <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+            <div className="my-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
               <p className="text-sm text-primary/80">
                 💡 여러 화면을 동시에 업로드하여 테스트 분석을 받아보세요!
               </p>

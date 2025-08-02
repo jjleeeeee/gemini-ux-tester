@@ -85,29 +85,120 @@ export const validateUrl = (url: string): boolean => {
   }
 };
 
-// 단순 암호화 키 생성 (브라우저 세션별 고유)
+// 브라우저 세션별 고유 암호화 키 생성 (보안 강화)
 const getSessionKey = (): string => {
   const sessionId = sessionStorage.getItem('session_crypto_key');
   if (sessionId) return sessionId;
   
-  // 브라우저 세션별 고유 키 생성
-  const newKey = generateNonce() + Date.now().toString(36);
+  // 브라우저 세션별 고유 키 생성 (더 강력한 키 생성)
+  const browserFingerprint = getBrowserFingerprint();
+  const timestamp = Date.now().toString(36);
+  const randomPart = generateNonce();
+  
+  const newKey = `${browserFingerprint}_${timestamp}_${randomPart}`;
   sessionStorage.setItem('session_crypto_key', newKey);
   return newKey;
 };
 
-// 단순 XOR 암호화/복호화 (기본 보안 수준)
-const simpleEncrypt = (text: string, key: string): string => {
-  let result = '';
-  for (let i = 0; i < text.length; i++) {
-    result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+// 브라우저 지문 생성 (세션별 고유성 향상)
+const getBrowserFingerprint = (): string => {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillText('Security fingerprint', 2, 2);
   }
-  return btoa(result); // Base64 인코딩
+  
+  const fingerprint = [
+    navigator.userAgent,
+    navigator.language,
+    window.screen.width + 'x' + window.screen.height,
+    new Date().getTimezoneOffset(),
+    canvas.toDataURL()
+  ].join('|');
+  
+  // 간단한 해시 생성
+  let hash = 0;
+  for (let i = 0; i < fingerprint.length; i++) {
+    const char = fingerprint.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // 32비트 정수로 변환
+  }
+  
+  return Math.abs(hash).toString(36);
 };
 
+// 강화된 XOR 암호화/복호화 (다중 키 + 솔트)
+const enhancedEncrypt = (text: string, key: string): string => {
+  try {
+    // 솔트 생성 (4바이트)
+    const salt = new Uint8Array(4);
+    crypto.getRandomValues(salt);
+    const saltString = Array.from(salt, byte => byte.toString(16).padStart(2, '0')).join('');
+    
+    // 키와 솔트 결합
+    const combinedKey = key + saltString;
+    
+    // 다중 라운드 XOR 암호화
+    let result = text;
+    for (let round = 0; round < 3; round++) {
+      let roundResult = '';
+      for (let i = 0; i < result.length; i++) {
+        const keyChar = combinedKey.charCodeAt((i + round * 7) % combinedKey.length);
+        const textChar = result.charCodeAt(i);
+        roundResult += String.fromCharCode(textChar ^ keyChar ^ (round + 1));
+      }
+      result = roundResult;
+    }
+    
+    // 솔트 + 암호화된 데이터를 Base64로 인코딩
+    return btoa(saltString + '::' + result);
+  } catch (error: any) {
+    console.error('Encryption error:', error);
+    return btoa(text); // 실패 시 단순 Base64만
+  }
+};
+
+const enhancedDecrypt = (encrypted: string, key: string): string => {
+  try {
+    const decoded = atob(encrypted);
+    const parts = decoded.split('::');
+    
+    if (parts.length !== 2) {
+      // 이전 단순 암호화 형식인 경우 호환성 유지
+      return simpleDecrypt(encrypted, key);
+    }
+    
+    const saltString = parts[0];
+    const encryptedData = parts[1];
+    
+    // 키와 솔트 결합
+    const combinedKey = key + saltString;
+    
+    // 다중 라운드 XOR 복호화 (역순)
+    let result = encryptedData;
+    for (let round = 2; round >= 0; round--) {
+      let roundResult = '';
+      for (let i = 0; i < result.length; i++) {
+        const keyChar = combinedKey.charCodeAt((i + round * 7) % combinedKey.length);
+        const encryptedChar = result.charCodeAt(i);
+        roundResult += String.fromCharCode(encryptedChar ^ keyChar ^ (round + 1));
+      }
+      result = roundResult;
+    }
+    
+    return result;
+  } catch (error: any) {
+    console.error('Decryption error:', error);
+    return '';
+  }
+};
+
+// 기존 단순 암호화 (호환성 유지)
 const simpleDecrypt = (encrypted: string, key: string): string => {
   try {
-    const decoded = atob(encrypted); // Base64 디코딩
+    const decoded = atob(encrypted);
     let result = '';
     for (let i = 0; i < decoded.length; i++) {
       result += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length));
@@ -127,9 +218,9 @@ export const secureStorage = {
         throw new Error('Invalid value for storage');
       }
       
-      // 세션 키로 암호화하여 저장
+      // 세션 키로 강화된 암호화하여 저장
       const sessionKey = getSessionKey();
-      const encrypted = simpleEncrypt(value, sessionKey);
+      const encrypted = enhancedEncrypt(value, sessionKey);
       
       // localStorage 대신 sessionStorage 사용 (브라우저 종료 시 자동 삭제)
       sessionStorage.setItem(key, encrypted);
@@ -138,8 +229,8 @@ export const secureStorage = {
       const hashedKey = btoa(key + '_exists');
       localStorage.setItem(hashedKey, 'true');
       
-    } catch (error) {
-      console.error('Secure storage error:', maskSensitiveInfo(error.message || 'Unknown error'));
+    } catch (error: any) {
+      console.error('Secure storage error:', maskSensitiveInfo(error?.message || 'Unknown error'));
     }
   },
 
@@ -149,13 +240,13 @@ export const secureStorage = {
       const encrypted = sessionStorage.getItem(key);
       if (!encrypted) return null;
       
-      // 세션 키로 복호화
+      // 세션 키로 강화된 복호화
       const sessionKey = getSessionKey();
-      const decrypted = simpleDecrypt(encrypted, sessionKey);
+      const decrypted = enhancedDecrypt(encrypted, sessionKey);
       
       return decrypted || null;
-    } catch (error) {
-      console.error('Secure storage error:', maskSensitiveInfo(error.message || 'Unknown error'));
+    } catch (error: any) {
+      console.error('Secure storage error:', maskSensitiveInfo(error?.message || 'Unknown error'));
       return null;
     }
   },
@@ -169,8 +260,8 @@ export const secureStorage = {
       const hashedKey = btoa(key + '_exists');
       localStorage.removeItem(hashedKey);
       
-    } catch (error) {
-      console.error('Secure storage error:', maskSensitiveInfo(error.message || 'Unknown error'));
+    } catch (error: any) {
+      console.error('Secure storage error:', maskSensitiveInfo(error?.message || 'Unknown error'));
     }
   },
 
@@ -180,7 +271,7 @@ export const secureStorage = {
       sessionStorage.removeItem('session_crypto_key');
       // API 키 관련 항목들 정리
       sessionStorage.removeItem('gemini_api_key');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Session clear error:', error);
     }
   }
@@ -224,11 +315,17 @@ export class SecureMemory {
   // 만료된 데이터 정리
   private static cleanup(): void {
     const now = Date.now();
-    for (const [key, data] of this.sensitiveData.entries()) {
+    const keysToDelete: string[] = [];
+    
+    this.sensitiveData.forEach((data, key) => {
       if (now - data.timestamp > this.EXPIRY_TIME) {
-        this.sensitiveData.delete(key);
+        keysToDelete.push(key);
       }
-    }
+    });
+    
+    keysToDelete.forEach(key => {
+      this.sensitiveData.delete(key);
+    });
   }
   
   // 전체 민감한 데이터 정리

@@ -9,6 +9,7 @@ import { Button } from './components/ui/button';
 import { Card, CardContent } from './components/ui/card';
 import { AuthService } from './services/authService';
 import { GeminiApiService, ProgressCallback, FallbackCallback } from './services/geminiApi';
+import { SessionManager } from './utils/sessionManager';
 import { buildABTestPrompt } from './utils/promptUtils';
 import { UploadedImage } from './types/analysis';
 import './App.css';
@@ -68,8 +69,17 @@ function App() {
     const authenticated = AuthService.isAuthenticated();
     setIsAuthenticated(authenticated);
     
-    // 인증되어 있으면 GeminiApiService 인스턴스 생성
+    // 인증되어 있으면 세션 관리 시작
     if (authenticated) {
+      SessionManager.initialize();
+      
+      // 개발 모드에서만 상태 로깅
+      if (process.env.NODE_ENV === 'development') {
+        AuthService.logSecurityStatus();
+        SessionManager.logStatus();
+      }
+      
+      // GeminiApiService 인스턴스 생성
       const apiKey = AuthService.getApiKey();
       if (apiKey) {
         const service = new GeminiApiService(apiKey);
@@ -91,6 +101,9 @@ function App() {
       uploadedImages.forEach(img => {
         URL.revokeObjectURL(img.previewUrl);
       });
+      
+      // 세션 관리자 정리
+      SessionManager.cleanup();
     };
   }, [uploadedImages, selectedModel, handleModelFallback]);
 
@@ -122,6 +135,14 @@ function App() {
 
   const handleAuthSuccess = useCallback(() => {
     setIsAuthenticated(true);
+    
+    // 세션 관리 시작
+    SessionManager.initialize();
+    
+    // 개발 모드에서 상태 로깅
+    if (process.env.NODE_ENV === 'development') {
+      SessionManager.logStatus();
+    }
     
     // 인증 성공 시 GeminiApiService 인스턴스 생성
     const apiKey = AuthService.getApiKey();
@@ -278,6 +299,10 @@ function App() {
   }, [analysisResults, persona, situation, uploadedImages.length]);
 
   const handleLogout = useCallback(() => {
+    // 세션 관리자 정리
+    SessionManager.cleanup();
+    
+    // 인증 및 상태 정리
     AuthService.clearApiKey();
     setIsAuthenticated(false);
     setUploadedImages([]);
@@ -293,6 +318,8 @@ function App() {
     uploadedImages.forEach(img => {
       URL.revokeObjectURL(img.previewUrl);
     });
+    
+    console.log('User logged out manually');
   }, [uploadedImages]);
 
   if (!isAuthenticated) {
@@ -360,8 +387,8 @@ function App() {
         </header>
 
         {/* Main Content */}
-        <main className="container mx-auto px-4 py-8">
-          <div className="max-w-6xl mx-auto space-y-8">
+        <main className="flex-1 py-8">
+          <div className="main-content space-y-8">
             {/* 분석 타이틀 */}
             <section className="animate-fade-in mb-6">
               <div className="text-center p-4">

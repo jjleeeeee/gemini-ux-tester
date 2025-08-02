@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Loader2 } from 'lucide-react';
 import { getAnalyzingMessage, getAnalysisTitle } from '../../utils/nameUtils';
@@ -46,12 +46,12 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
     }
   }, [progressMessage]);
 
-  // 시간 포맷팅 함수 (메모화)
-  const formatTime = useCallback((seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins > 0 ? `${mins}분 ${secs}초` : `${secs}초`;
-  }, []);
+  // 시간 포맷팅 함수 (메모화) - 미래 사용 예정
+  // const formatTime = useCallback((seconds: number): string => {
+  //   const mins = Math.floor(seconds / 60);
+  //   const secs = seconds % 60;
+  //   return mins > 0 ? `${mins}분 ${secs}초` : `${secs}초`;
+  // }, []);
 
   if (isAnalyzing) {
 

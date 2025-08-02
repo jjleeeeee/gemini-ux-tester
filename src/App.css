@@ -66,12 +66,13 @@ body {
 
 .app-main {
   flex: 1;
-  padding: 40px 20px;
+  padding: 2rem 1rem;
 }
 
 .main-content {
   max-width: 900px;
   margin: 0 auto;
+  padding: 0 1rem;
 }
 
 .upload-section,
