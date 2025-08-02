@@ -85,7 +85,40 @@ export const validateUrl = (url: string): boolean => {
   }
 };
 
-// 로컬 스토리지 보안 래퍼
+// 단순 암호화 키 생성 (브라우저 세션별 고유)
+const getSessionKey = (): string => {
+  const sessionId = sessionStorage.getItem('session_crypto_key');
+  if (sessionId) return sessionId;
+  
+  // 브라우저 세션별 고유 키 생성
+  const newKey = generateNonce() + Date.now().toString(36);
+  sessionStorage.setItem('session_crypto_key', newKey);
+  return newKey;
+};
+
+// 단순 XOR 암호화/복호화 (기본 보안 수준)
+const simpleEncrypt = (text: string, key: string): string => {
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+  }
+  return btoa(result); // Base64 인코딩
+};
+
+const simpleDecrypt = (encrypted: string, key: string): string => {
+  try {
+    const decoded = atob(encrypted); // Base64 디코딩
+    let result = '';
+    for (let i = 0; i < decoded.length; i++) {
+      result += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return result;
+  } catch {
+    return '';
+  }
+};
+
+// 보안 강화된 스토리지 래퍼
 export const secureStorage = {
   setItem: (key: string, value: string): void => {
     try {
@@ -93,29 +126,123 @@ export const secureStorage = {
       if (typeof value !== 'string' || value.length > 10000) {
         throw new Error('Invalid value for storage');
       }
-      localStorage.setItem(key, value);
+      
+      // 세션 키로 암호화하여 저장
+      const sessionKey = getSessionKey();
+      const encrypted = simpleEncrypt(value, sessionKey);
+      
+      // localStorage 대신 sessionStorage 사용 (브라우저 종료 시 자동 삭제)
+      sessionStorage.setItem(key, encrypted);
+      
+      // 추가 보안: localStorage에는 해시된 키로만 존재 여부 저장
+      const hashedKey = btoa(key + '_exists');
+      localStorage.setItem(hashedKey, 'true');
+      
     } catch (error) {
-      console.error('Secure storage error:', error);
+      console.error('Secure storage error:', maskSensitiveInfo(error.message || 'Unknown error'));
     }
   },
 
   getItem: (key: string): string | null => {
     try {
-      return localStorage.getItem(key);
+      // sessionStorage에서 암호화된 값 가져오기
+      const encrypted = sessionStorage.getItem(key);
+      if (!encrypted) return null;
+      
+      // 세션 키로 복호화
+      const sessionKey = getSessionKey();
+      const decrypted = simpleDecrypt(encrypted, sessionKey);
+      
+      return decrypted || null;
     } catch (error) {
-      console.error('Secure storage error:', error);
+      console.error('Secure storage error:', maskSensitiveInfo(error.message || 'Unknown error'));
       return null;
     }
   },
 
   removeItem: (key: string): void => {
     try {
-      localStorage.removeItem(key);
+      // sessionStorage에서 삭제
+      sessionStorage.removeItem(key);
+      
+      // localStorage에서도 존재 여부 플래그 삭제
+      const hashedKey = btoa(key + '_exists');
+      localStorage.removeItem(hashedKey);
+      
     } catch (error) {
-      console.error('Secure storage error:', error);
+      console.error('Secure storage error:', maskSensitiveInfo(error.message || 'Unknown error'));
+    }
+  },
+
+  // 보안 세션 초기화
+  clearSession: (): void => {
+    try {
+      sessionStorage.removeItem('session_crypto_key');
+      // API 키 관련 항목들 정리
+      sessionStorage.removeItem('gemini_api_key');
+    } catch (error) {
+      console.error('Session clear error:', error);
     }
   }
 };
+
+// 민감한 데이터 메모리 관리 클래스
+export class SecureMemory {
+  private static sensitiveData = new Map<string, { value: string; timestamp: number }>();
+  private static readonly EXPIRY_TIME = 30 * 60 * 1000; // 30분
+  
+  // 민감한 데이터 임시 저장
+  static store(key: string, value: string): void {
+    this.sensitiveData.set(key, {
+      value,
+      timestamp: Date.now()
+    });
+    
+    // 만료된 데이터 정리
+    this.cleanup();
+  }
+  
+  // 민감한 데이터 조회
+  static retrieve(key: string): string | null {
+    const data = this.sensitiveData.get(key);
+    if (!data) return null;
+    
+    // 만료 확인
+    if (Date.now() - data.timestamp > this.EXPIRY_TIME) {
+      this.sensitiveData.delete(key);
+      return null;
+    }
+    
+    return data.value;
+  }
+  
+  // 민감한 데이터 즉시 삭제
+  static delete(key: string): void {
+    this.sensitiveData.delete(key);
+  }
+  
+  // 만료된 데이터 정리
+  private static cleanup(): void {
+    const now = Date.now();
+    for (const [key, data] of this.sensitiveData.entries()) {
+      if (now - data.timestamp > this.EXPIRY_TIME) {
+        this.sensitiveData.delete(key);
+      }
+    }
+  }
+  
+  // 전체 민감한 데이터 정리
+  static clearAll(): void {
+    this.sensitiveData.clear();
+  }
+}
+
+// 자동 메모리 정리 (5분마다)
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    SecureMemory.clearAll();
+  }, 5 * 60 * 1000);
+}
 
 // 입력 값 검증을 위한 일반적인 함수
 export const validateInput = {

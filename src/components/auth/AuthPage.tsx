@@ -9,6 +9,7 @@ interface AuthPageProps {
 
 const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
   const [apiKey, setApiKey] = useState('');
+  const [maskedApiKey, setMaskedApiKey] = useState(''); // 화면 표시용 마스킹된 버전
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState('');
   
@@ -23,10 +24,26 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
     }
   }, []);
 
+  // API 키 마스킹 처리
+  const maskApiKey = useCallback((key: string): string => {
+    if (key.length <= 8) return key;
+    const start = key.substring(0, 4);
+    const end = key.substring(key.length - 4);
+    const middle = '*'.repeat(Math.min(key.length - 8, 20));
+    return `${start}${middle}${end}`;
+  }, []);
+
   // 실시간 입력 검증
   const handleApiKeyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setApiKey(value);
+    
+    // 마스킹된 버전 업데이트 (입력 중에는 원본 표시)
+    if (value.length > 12) {
+      setMaskedApiKey(maskApiKey(value));
+    } else {
+      setMaskedApiKey(value);
+    }
     
     // 입력 중에는 에러 상태 초기화
     if (error) {
@@ -40,7 +57,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
         setError(validation.error);
       }
     }
-  }, [error]);
+  }, [error, maskApiKey]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

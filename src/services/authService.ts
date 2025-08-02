@@ -28,7 +28,9 @@ export class AuthService {
 
   static clearApiKey(): void {
     secureStorage.removeItem(this.API_KEY_STORAGE_KEY);
-    console.log('API key cleared');
+    // 보안 세션 전체 정리
+    secureStorage.clearSession();
+    console.log('API key and session cleared');
   }
 
   static async validateAndSaveApiKey(apiKey: string): Promise<boolean> {
