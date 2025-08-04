@@ -245,8 +245,14 @@ export class GeminiApiService {
           throw ErrorHandler.handleApiError(error);
         }
 
-        // 500 서버 내부 에러는 즉시 실패 (재시도 의미 없음)
+        // 500 서버 내부 에러 시 fallback 모델 시도
         if (error.response?.status === 500) {
+          const fallbackModel = await this.tryFallbackModel(error, retryContext);
+          if (fallbackModel) {
+            // fallback 모델로 다시 시도
+            continue;
+          }
+          // fallback도 실패하면 즉시 실패
           throw ErrorHandler.handleApiError(error);
         }
 

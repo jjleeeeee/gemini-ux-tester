@@ -31,7 +31,7 @@ function App() {
   const [analysisStartTime, setAnalysisStartTime] = useState<number | null>(null);
   
   // Gemini 모델 관련 상태
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-2.5-flash'); // 기본값은 flash
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-1.5-flash'); // 안정적인 모델로 변경
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
   const [currentActiveModel, setCurrentActiveModel] = useState<string | null>(null);
   
