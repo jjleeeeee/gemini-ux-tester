@@ -1,9 +1,12 @@
 import { GeminiApiService } from './geminiApi';
 import { validateApiKey, secureStorage, maskSensitiveInfo } from '../utils/security';
+import { APP_CONSTANTS } from '../config/constants';
+import { ErrorHandler } from '../utils/errorHandler';
+import type { SecurityStatus } from '../config/types';
 
 export class AuthService {
-  private static readonly API_KEY_STORAGE_KEY = 'gemini_api_key';
-  private static readonly LEGACY_STORAGE_KEY = 'gemini_api_key_legacy';
+  private static readonly API_KEY_STORAGE_KEY = APP_CONSTANTS.STORAGE_KEYS.API_KEY;
+  private static readonly LEGACY_STORAGE_KEY = APP_CONSTANTS.STORAGE_KEYS.LEGACY_API_KEY;
 
   static saveApiKey(apiKey: string): void {
     // 보안 검증 후 저장
@@ -13,7 +16,7 @@ export class AuthService {
     }
     
     secureStorage.setItem(this.API_KEY_STORAGE_KEY, apiKey);
-    console.log('API key saved successfully');
+    console.log(APP_CONSTANTS.SUCCESS_MESSAGES.API_KEY_SAVED);
   }
 
   static getApiKey(): string | null {
@@ -68,7 +71,10 @@ export class AuthService {
       const validation = validateApiKey(trimmedKey);
       
       if (!validation.isValid) {
-        console.error('API key validation failed:', validation.error);
+        ErrorHandler.logError(
+          new Error(`API key validation failed: ${validation.error}`), 
+          'validateAndSaveApiKey'
+        );
         return false;
       }
 
@@ -82,9 +88,7 @@ export class AuthService {
       }
       return false;
     } catch (error: any) {
-      // 민감한 정보 마스킹하여 로깅
-      const maskedError = maskSensitiveInfo(error.message || 'Unknown error');
-      console.error('API Key validation error:', maskedError);
+      ErrorHandler.logError(error, 'validateAndSaveApiKey');
       return false;
     }
   }
@@ -105,13 +109,7 @@ export class AuthService {
   }
 
   // 보안 상태 확인
-  static getSecurityStatus(): {
-    isSecureStorage: boolean;
-    isSessionBased: boolean;
-    isEncrypted: boolean;
-    isMigrated: boolean;
-    usingEnvKey: boolean;
-  } {
+  static getSecurityStatus(): SecurityStatus {
     return {
       isSecureStorage: true, // 항상 secureStorage 사용
       isSessionBased: true, // sessionStorage 기반

@@ -72,9 +72,9 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
           
           {/* 로딩 스피너 */}
           <div className="loading-section" aria-labelledby="analyzing-title">
-            <div className="flex items-center justify-center gap-4 py-6">
+            <div className="flex flex-col items-center justify-center gap-4 py-6 text-center">
               <Loader2 className="h-8 w-8 text-primary animate-spin" />
-              <div className="text-center">
+              <div>
                 <p 
                   className="font-medium text-primary mb-2" 
                   ref={progressRef}
@@ -84,13 +84,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
                   분석 중입니다...
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {retryCount > 0 ? (
-                    <span aria-live="polite">
-                      연결 문제로 재시도 중... ({retryCount}/{maxRetries})
-                    </span>
-                  ) : (
-                    "잠시만 기다려 주세요. AI가 화면을 분석하고 있습니다."
-                  )}
+                  잠시만 기다려 주세요. AI가 화면을 분석하고 있습니다.
                 </p>
               </div>
             </div>
@@ -135,17 +129,6 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
             </li>
           </ol>
 
-          {/* 재시도 중일 때 추가 정보 */}
-          {retryCount > 0 && (
-            <div className="retry-notice" role="status" aria-live="polite">
-              <div className="flex items-center justify-center gap-2 mt-4">
-                <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
-                <span className="text-sm text-amber-700">
-                  재시도 중... ({maxRetries - retryCount}번의 시도가 남았습니다)
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );

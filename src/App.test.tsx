@@ -1,4 +1,6 @@
 // Simple test to satisfy CI/CD requirements
+export {};
+
 describe('Basic Test Suite', () => {
   test('basic functionality works', () => {
     // Basic functionality test

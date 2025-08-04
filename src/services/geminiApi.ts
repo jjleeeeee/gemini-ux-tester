@@ -1,17 +1,16 @@
 import axios from 'axios';
-
-const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
-
-// 최신 Gemini 모델 목록 (우선순위 순)
-const GEMINI_MODELS = [
-  'gemini-2.5-flash',    // 현재 권장 모델 (가성비 최고)
-  'gemini-2.5-pro',      // 고성능 모델
-  'gemini-1.5-flash',    // 이전 버전 fallback
-  'gemini-1.5-pro'       // 이전 버전 fallback
-];
+import { API_CONFIG } from '../config/api';
+import type { 
+  ProgressCallback, 
+  FallbackCallback, 
+  ModelInfo, 
+  ImageValidationResult,
+  NetworkQuality
+} from '../config/types';
+import { ErrorHandler } from '../utils/errorHandler';
 
 // 모델 정보 맵핑
-const MODEL_INFO = {
+const MODEL_INFO: Record<string, ModelInfo> = {
   'gemini-2.5-flash': {
     name: 'Gemini 2.5 Flash',
     description: '빠르고 효율적인 분석 (권장)',
@@ -36,31 +35,10 @@ const MODEL_INFO = {
     speed: 'medium',
     cost: 'high'
   }
-} as const;
+};
 
 export type ModelKey = keyof typeof MODEL_INFO;
-export type ModelInfo = typeof MODEL_INFO[ModelKey];
-
-// Fallback 콜백 타입
-export type FallbackCallback = (originalModel: string, fallbackModel: string, reason: string) => void;
-
-// 타임아웃 설정 (밀리초)
-const TIMEOUT_CONFIG = {
-  validation: 10000,      // API 키 검증: 10초
-  firstAttempt: 45000,    // 첫 번째 시도: 45초
-  retryAttempt: 60000,    // 재시도: 60초
-  finalAttempt: 90000     // 최종 시도: 90초
-};
-
-// 재시도 설정
-const RETRY_CONFIG = {
-  maxRetries: 3,
-  retryDelay: 2000,       // 2초 대기
-  backoffMultiplier: 1.5  // 지수 백오프
-};
-
-// 진행상황 콜백 타입
-export type ProgressCallback = (message: string, progress: number) => void;
+export { type ModelInfo, type ProgressCallback, type FallbackCallback };
 
 export class GeminiApiService {
   private apiKey: string;
@@ -89,50 +67,55 @@ export class GeminiApiService {
 
   // 사용 가능한 모델을 찾아서 API 키를 검증
   async validateApiKey(): Promise<boolean> {
-    // 이미 작동하는 모델이 있다면 그것을 사용
-    if (this.workingModel) {
-      return await this.testModel(this.workingModel);
-    }
-
-    // 선택된 모델이 있다면 우선 테스트
-    if (this.selectedModel) {
-      try {
-        const isWorking = await this.testModel(this.selectedModel);
-        if (isWorking) {
-          this.workingModel = this.selectedModel;
-          console.log(`Selected model is working: ${this.selectedModel}`);
-          return true;
-        }
-      } catch (error) {
-        console.log(`Selected model ${this.selectedModel} failed, trying fallbacks...`);
+    try {
+      // 이미 작동하는 모델이 있다면 그것을 사용
+      if (this.workingModel) {
+        return await this.testModel(this.workingModel);
       }
-    }
 
-    // 모든 모델을 순서대로 테스트
-    for (const model of GEMINI_MODELS) {
-      // 이미 테스트한 선택된 모델은 건너뛰기
-      if (model === this.selectedModel) continue;
-      
-      try {
-        const isWorking = await this.testModel(model);
-        if (isWorking) {
-          this.workingModel = model;
-          console.log(`Working model found: ${model}`);
-          return true;
+      // 선택된 모델이 있다면 우선 테스트
+      if (this.selectedModel) {
+        try {
+          const isWorking = await this.testModel(this.selectedModel);
+          if (isWorking) {
+            this.workingModel = this.selectedModel;
+            console.log(`Selected model is working: ${this.selectedModel}`);
+            return true;
+          }
+        } catch (error) {
+          console.log(`Selected model ${this.selectedModel} failed, trying fallbacks...`);
         }
-      } catch (error) {
-        console.log(`Model ${model} failed, trying next...`);
       }
-    }
 
-    console.error('No working model found with the provided API key');
-    return false;
+      // 모든 모델을 순서대로 테스트
+      for (const model of API_CONFIG.MODELS) {
+        // 이미 테스트한 선택된 모델은 건너뛰기
+        if (model === this.selectedModel) continue;
+        
+        try {
+          const isWorking = await this.testModel(model);
+          if (isWorking) {
+            this.workingModel = model;
+            console.log(`Working model found: ${model}`);
+            return true;
+          }
+        } catch (error) {
+          console.log(`Model ${model} failed, trying next...`);
+        }
+      }
+
+      console.error('No working model found with the provided API key');
+      return false;
+    } catch (error) {
+      ErrorHandler.logError(error, 'validateApiKey');
+      return false;
+    }
   }
 
   private async testModel(model: string): Promise<boolean> {
     try {
       const response = await axios.post(
-        `${GEMINI_API_BASE_URL}/models/${model}:generateContent?key=${this.apiKey}`,
+        `${API_CONFIG.GEMINI_BASE_URL}/models/${model}:generateContent?key=${this.apiKey}`,
         {
           contents: [{
             parts: [{
@@ -144,22 +127,17 @@ export class GeminiApiService {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: TIMEOUT_CONFIG.validation
+          timeout: API_CONFIG.TIMEOUT.VALIDATION
         }
       );
       return response.status === 200;
     } catch (error: any) {
-      console.error(`Model ${model} test failed:`, {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data
-      });
+      ErrorHandler.logError(error, `testModel:${model}`);
       return false;
     }
   }
 
-  // 네트워크 상태 체크 (CORS 문제 해결)
+  // 네트워크 상태 체크
   private async checkNetworkConnection(): Promise<boolean> {
     try {
       // 브라우저 환경에서는 navigator.onLine을 우선 사용
@@ -168,9 +146,8 @@ export class GeminiApiService {
       }
 
       // 실제 Gemini API 서버로 간단한 요청을 보내서 네트워크 상태 확인
-      // 이렇게 하면 CORS 문제가 없고 실제 API 서버 연결성도 확인할 수 있음
       const response = await axios.get(
-        `${GEMINI_API_BASE_URL}/models?key=${this.apiKey}`,
+        `${API_CONFIG.GEMINI_BASE_URL}/models?key=${this.apiKey}`,
         { 
           timeout: 5000,
           headers: { 'Cache-Control': 'no-cache' }
@@ -191,7 +168,7 @@ export class GeminiApiService {
   private async tryFallbackModel(originalError: any, context: string): Promise<string | null> {
     if (!this.workingModel) return null;
     
-    const currentModelIndex = GEMINI_MODELS.indexOf(this.workingModel);
+    const currentModelIndex = API_CONFIG.MODELS.indexOf(this.workingModel as any);
     
     // 사용량 초과 에러인지 확인
     const isQuotaExceeded = originalError.response?.status === 429 || 
@@ -200,8 +177,8 @@ export class GeminiApiService {
     
     if (isQuotaExceeded && currentModelIndex !== -1) {
       // 다음 가용한 모델로 fallback 시도
-      for (let i = currentModelIndex + 1; i < GEMINI_MODELS.length; i++) {
-        const fallbackModel = GEMINI_MODELS[i];
+      for (let i = currentModelIndex + 1; i < API_CONFIG.MODELS.length; i++) {
+        const fallbackModel = API_CONFIG.MODELS[i];
         try {
           const isWorking = await this.testModel(fallbackModel);
           if (isWorking) {
@@ -213,7 +190,7 @@ export class GeminiApiService {
               this.fallbackCallback(
                 originalModel,
                 fallbackModel,
-                `${MODEL_INFO[originalModel as ModelKey]?.name || originalModel} 사용량 초과로 ${MODEL_INFO[fallbackModel as ModelKey]?.name || fallbackModel}로 전환되었습니다.`
+                `${MODEL_INFO[originalModel]?.name || originalModel} 사용량 초과로 ${MODEL_INFO[fallbackModel]?.name || fallbackModel}로 전환되었습니다.`
               );
             }
             
@@ -237,14 +214,14 @@ export class GeminiApiService {
   ): Promise<T> {
     let lastError: any;
     
-    for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+    for (let attempt = 0; attempt <= API_CONFIG.RETRY.MAX_ATTEMPTS; attempt++) {
       try {
         if (progressCallback) {
-          const progress = (attempt / (RETRY_CONFIG.maxRetries + 1)) * 50; // 첫 50%는 시도 진행률
+          const progress = (attempt / (API_CONFIG.RETRY.MAX_ATTEMPTS + 1)) * 50; // 첫 50%는 시도 진행률
           progressCallback(
             attempt === 0 
               ? `${retryContext} 중...` 
-              : `${retryContext} 재시도 중... (${attempt}/${RETRY_CONFIG.maxRetries})`,
+              : `${retryContext} 재시도 중... (${attempt}/${API_CONFIG.RETRY.MAX_ATTEMPTS})`,
             progress
           );
         }
@@ -261,11 +238,16 @@ export class GeminiApiService {
         
         // 재시도하지 않을 에러들 (즉시 실패)
         if (error.response?.status === 401 || error.response?.status === 403) {
-          throw new Error('API 키가 유효하지 않거나 권한이 없습니다. API 키를 확인해 주세요.');
+          throw ErrorHandler.handleApiError(error);
         }
         
         if (error.response?.status === 400) {
-          throw new Error('잘못된 요청입니다. 이미지 형식이나 크기를 확인해 주세요.');
+          throw ErrorHandler.handleApiError(error);
+        }
+
+        // 500 서버 내부 에러는 즉시 실패 (재시도 의미 없음)
+        if (error.response?.status === 500) {
+          throw ErrorHandler.handleApiError(error);
         }
 
         // 사용량 초과 에러 시 fallback 시도
@@ -277,7 +259,7 @@ export class GeminiApiService {
           }
         }
 
-        // 네트워크 관련 에러인지 확인 (응답이 없거나 타임아웃인 경우만)
+        // 네트워크 관련 에러인지 확인
         const isNetworkError = !error.response && (
           error.code === 'ECONNABORTED' || 
           error.code === 'ENOTFOUND' || 
@@ -288,33 +270,33 @@ export class GeminiApiService {
 
         // 네트워크 에러가 의심되는 경우에만 네트워크 상태 확인
         if (isNetworkError) {
-          // 브라우저 환경에서 navigator.onLine 먼저 체크 (빠르고 신뢰성 있음)
+          // 브라우저 환경에서 navigator.onLine 먼저 체크
           if (typeof navigator !== 'undefined' && !navigator.onLine) {
-            throw new Error('인터넷 연결을 확인해 주세요. 네트워크에 연결되어 있지 않습니다.');
+            throw ErrorHandler.handleApiError(error);
           }
           
           // 심각한 네트워크 에러인 경우에만 추가 네트워크 체크
           if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
             const isConnected = await this.checkNetworkConnection();
             if (!isConnected) {
-              throw new Error('인터넷 연결을 확인해 주세요. 네트워크에 연결되어 있지 않습니다.');
+              throw ErrorHandler.handleApiError(error);
             }
           }
         }
 
         // 마지막 시도였다면 에러 throw
-        if (attempt === RETRY_CONFIG.maxRetries) {
+        if (attempt === API_CONFIG.RETRY.MAX_ATTEMPTS) {
           break;
         }
 
         // 재시도 대기
-        const delay = RETRY_CONFIG.retryDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt);
+        const delay = API_CONFIG.RETRY.DELAY * Math.pow(API_CONFIG.RETRY.BACKOFF_MULTIPLIER, attempt);
         
         if (progressCallback) {
           const reason = isNetworkError ? '연결 문제' : '서버 응답 오류';
           progressCallback(
             `${reason}로 인해 ${delay / 1000}초 후 재시도합니다...`,
-            ((attempt + 1) / (RETRY_CONFIG.maxRetries + 1)) * 50
+            ((attempt + 1) / (API_CONFIG.RETRY.MAX_ATTEMPTS + 1)) * 50
           );
         }
         
@@ -322,23 +304,15 @@ export class GeminiApiService {
       }
     }
 
-    // 모든 재시도 실패 시 적절한 에러 메시지
-    if (lastError.code === 'ECONNABORTED') {
-      throw new Error('요청 시간이 초과되었습니다. 이미지가 너무 크거나 네트워크가 불안정할 수 있습니다.');
-    } else if (lastError.response?.status === 429) {
-      throw new Error('API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해 주세요.');
-    } else if (lastError.response?.status >= 500) {
-      throw new Error('서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.');
-    } else {
-      throw new Error(`${retryContext}에 실패했습니다: ${lastError.message}`);
-    }
+    // 모든 재시도 실패 시 에러 throw
+    throw ErrorHandler.handleApiError(lastError);
   }
 
   // 적응형 타임아웃 계산
   private getTimeoutForAttempt(attempt: number): number {
-    if (attempt === 0) return TIMEOUT_CONFIG.firstAttempt;
-    if (attempt === 1) return TIMEOUT_CONFIG.retryAttempt;
-    return TIMEOUT_CONFIG.finalAttempt;
+    if (attempt === 0) return API_CONFIG.TIMEOUT.FIRST_ATTEMPT;
+    if (attempt === 1) return API_CONFIG.TIMEOUT.RETRY_ATTEMPT;
+    return API_CONFIG.TIMEOUT.FINAL_ATTEMPT;
   }
 
   async analyzeImageWithPersona(
@@ -355,14 +329,17 @@ export class GeminiApiService {
       
       const isValid = await this.validateApiKey();
       if (!isValid) {
-        throw new Error('사용 가능한 Gemini 모델을 찾을 수 없습니다. API 키를 확인해 주세요.');
+        throw ErrorHandler.createValidationError(
+          'No working model found',
+          '사용 가능한 Gemini 모델을 찾을 수 없습니다. API 키를 확인해 주세요.'
+        );
       }
     }
 
-    // 이미지 크기 검증 (Base64 문자열 길이로 대략적인 크기 추정)
-    const estimatedSizeKB = (imageBase64.length * 3) / 4 / 1024;
-    if (estimatedSizeKB > 4000) { // 4MB 제한
-      throw new Error('이미지 크기가 너무 큽니다. 4MB 이하의 이미지를 사용해 주세요.');
+    // 이미지 크기 검증
+    const validation = this.validateImageData(imageBase64);
+    if (!validation.isValid) {
+      throw ErrorHandler.createImageError('size');
     }
 
     if (progressCallback) {
@@ -379,7 +356,7 @@ export class GeminiApiService {
           currentAttempt++;
           
           const response = await axios.post(
-            `${GEMINI_API_BASE_URL}/models/${this.workingModel}:generateContent?key=${this.apiKey}`,
+            `${API_CONFIG.GEMINI_BASE_URL}/models/${this.workingModel}:generateContent?key=${this.apiKey}`,
             {
               contents: [{
                 parts: [
@@ -400,7 +377,7 @@ export class GeminiApiService {
                 'Content-Type': 'application/json',
               },
               timeout,
-              // 요청 취소를 위한 AbortController 추가 (Node.js 15+ 또는 최신 브라우저)
+              // 요청 취소를 위한 AbortController 추가
               ...(typeof AbortController !== 'undefined' && {
                 signal: AbortSignal.timeout(timeout)
               })
@@ -422,78 +399,6 @@ export class GeminiApiService {
     );
   }
 
-  // 현재 사용 중인 모델 정보 반환
-  getCurrentModel(): string | null {
-    return this.workingModel;
-  }
-
-  // 사용 가능한 모델 목록 반환
-  getAvailableModels(): string[] {
-    return [...GEMINI_MODELS];
-  }
-
-  // 모델 정보 반환
-  getModelInfo(model: string): ModelInfo | null {
-    return MODEL_INFO[model as ModelKey] || null;
-  }
-
-  // 모든 모델 정보 반환
-  getAllModelInfo(): Record<string, ModelInfo> {
-    return { ...MODEL_INFO };
-  }
-
-  // 현재 선택된 모델 반환
-  getSelectedModel(): string | null {
-    return this.selectedModel;
-  }
-
-  // API 상태 및 설정 정보 반환
-  getServiceStatus() {
-    return {
-      currentModel: this.workingModel,
-      selectedModel: this.selectedModel,
-      availableModels: this.getAvailableModels(),
-      modelInfo: this.getAllModelInfo(),
-      timeoutConfig: TIMEOUT_CONFIG,
-      retryConfig: RETRY_CONFIG,
-      isConfigured: !!this.apiKey,
-      hasWorkingModel: !!this.workingModel
-    };
-  }
-
-  // 네트워크 품질 테스트
-  async testNetworkQuality(): Promise<{
-    isConnected: boolean;
-    latency: number;
-    quality: 'excellent' | 'good' | 'poor' | 'disconnected';
-  }> {
-    // 먼저 navigator.onLine으로 빠른 체크
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      return {
-        isConnected: false,
-        latency: 0,
-        quality: 'disconnected'
-      };
-    }
-
-    const start = Date.now();
-    const isConnected = await this.checkNetworkConnection();
-    const latency = Date.now() - start;
-
-    let quality: 'excellent' | 'good' | 'poor' | 'disconnected';
-    if (!isConnected) {
-      quality = 'disconnected';
-    } else if (latency < 200) {
-      quality = 'excellent';
-    } else if (latency < 500) {
-      quality = 'good';
-    } else {
-      quality = 'poor';
-    }
-
-    return { isConnected, latency, quality };
-  }
-
   // 다중 이미지 분석 (A/B 테스트용)
   async analyzeMultipleImages(
     imagesBase64: string[],
@@ -509,34 +414,46 @@ export class GeminiApiService {
       
       const isValid = await this.validateApiKey();
       if (!isValid) {
-        throw new Error('사용 가능한 Gemini 모델을 찾을 수 없습니다. API 키를 확인해 주세요.');
+        throw ErrorHandler.createValidationError(
+          'No working model found',
+          '사용 가능한 Gemini 모델을 찾을 수 없습니다. API 키를 확인해 주세요.'
+        );
       }
     }
 
     // 이미지 수 검증
     if (imagesBase64.length === 0) {
-      throw new Error('분석할 이미지가 없습니다.');
+      throw ErrorHandler.createImageError('missing');
     }
 
-    if (imagesBase64.length > 3) {
-      throw new Error('최대 3개의 이미지만 동시에 분석할 수 있습니다.');
+    if (imagesBase64.length > API_CONFIG.IMAGE.MAX_COUNT) {
+      throw ErrorHandler.createValidationError(
+        'Too many images',
+        `최대 ${API_CONFIG.IMAGE.MAX_COUNT}개의 이미지만 동시에 분석할 수 있습니다.`
+      );
     }
 
     // 각 이미지 크기 검증
     for (let i = 0; i < imagesBase64.length; i++) {
       const validation = this.validateImageData(imagesBase64[i]);
       if (!validation.isValid) {
-        throw new Error(`이미지 ${i + 1} 검증 실패: ${validation.errors.join(', ')}`);
+        throw ErrorHandler.createValidationError(
+          `Image ${i + 1} validation failed`,
+          `이미지 ${i + 1} 검증 실패: ${validation.errors.join(', ')}`
+        );
       }
     }
 
-    // 전체 이미지 크기 검증 (모든 이미지 합쳐서 8MB 제한)
+    // 전체 이미지 크기 검증
     const totalSizeKB = imagesBase64.reduce((total, imageBase64) => {
       return total + ((imageBase64.length * 3) / 4 / 1024);
     }, 0);
 
-    if (totalSizeKB > 8000) {
-      throw new Error('전체 이미지 크기가 8MB를 초과합니다. 이미지 크기를 줄이거나 개수를 줄여주세요.');
+    if (totalSizeKB > API_CONFIG.IMAGE.MAX_TOTAL_SIZE_KB) {
+      throw ErrorHandler.createValidationError(
+        'Total image size too large',
+        `전체 이미지 크기가 ${API_CONFIG.IMAGE.MAX_TOTAL_SIZE_KB / 1024}MB를 초과합니다. 이미지 크기를 줄이거나 개수를 줄여주세요.`
+      );
     }
 
     if (progressCallback) {
@@ -570,7 +487,7 @@ export class GeminiApiService {
           }
           
           const response = await axios.post(
-            `${GEMINI_API_BASE_URL}/models/${this.workingModel}:generateContent?key=${this.apiKey}`,
+            `${API_CONFIG.GEMINI_BASE_URL}/models/${this.workingModel}:generateContent?key=${this.apiKey}`,
             {
               contents: [{
                 parts: parts
@@ -581,7 +498,7 @@ export class GeminiApiService {
                 'Content-Type': 'application/json',
               },
               timeout,
-              // 요청 취소를 위한 AbortController 추가 (Node.js 15+ 또는 최신 브라우저)
+              // 요청 취소를 위한 AbortController 추가
               ...(typeof AbortController !== 'undefined' && {
                 signal: AbortSignal.timeout(timeout)
               })
@@ -616,18 +533,27 @@ export class GeminiApiService {
       
       const isValid = await this.validateApiKey();
       if (!isValid) {
-        throw new Error('사용 가능한 Gemini 모델을 찾을 수 없습니다. API 키를 확인해 주세요.');
+        throw ErrorHandler.createValidationError(
+          'No working model found',
+          '사용 가능한 Gemini 모델을 찾을 수 없습니다. API 키를 확인해 주세요.'
+        );
       }
     }
 
     // 키워드 검증
     if (!keyword || keyword.trim().length === 0) {
-      throw new Error('키워드를 입력해 주세요.');
+      throw ErrorHandler.createValidationError(
+        'Keyword required',
+        '키워드를 입력해 주세요.'
+      );
     }
 
     const trimmedKeyword = keyword.trim();
     if (trimmedKeyword.length > 100) {
-      throw new Error('키워드는 100자 이내로 입력해 주세요.');
+      throw ErrorHandler.createValidationError(
+        'Keyword too long',
+        '키워드는 100자 이내로 입력해 주세요.'
+      );
     }
 
     if (progressCallback) {
@@ -666,7 +592,7 @@ export class GeminiApiService {
           currentAttempt++;
           
           const response = await axios.post(
-            `${GEMINI_API_BASE_URL}/models/${this.workingModel}:generateContent?key=${this.apiKey}`,
+            `${API_CONFIG.GEMINI_BASE_URL}/models/${this.workingModel}:generateContent?key=${this.apiKey}`,
             {
               contents: [{
                 parts: [{
@@ -679,7 +605,7 @@ export class GeminiApiService {
                 'Content-Type': 'application/json',
               },
               timeout,
-              // 요청 취소를 위한 AbortController 추가 (Node.js 15+ 또는 최신 브라우저)
+              // 요청 취소를 위한 AbortController 추가
               ...(typeof AbortController !== 'undefined' && {
                 signal: AbortSignal.timeout(timeout)
               })
@@ -702,12 +628,7 @@ export class GeminiApiService {
   }
 
   // 이미지 크기 및 형식 검증
-  validateImageData(imageBase64: string): {
-    isValid: boolean;
-    size: number;
-    sizeKB: number;
-    errors: string[];
-  } {
+  validateImageData(imageBase64: string): ImageValidationResult {
     const errors: string[] = [];
     
     // Base64 형식 검증
@@ -721,8 +642,8 @@ export class GeminiApiService {
     const sizeKB = (size * 3) / 4 / 1024;
 
     // 크기 제한 검증
-    if (sizeKB > 4000) {
-      errors.push('이미지 크기가 4MB를 초과합니다.');
+    if (sizeKB > API_CONFIG.IMAGE.MAX_SIZE_KB) {
+      errors.push(`이미지 크기가 ${API_CONFIG.IMAGE.MAX_SIZE_KB / 1024}MB를 초과합니다.`);
     }
 
     if (size === 0) {
@@ -735,6 +656,75 @@ export class GeminiApiService {
       sizeKB: Math.round(sizeKB * 100) / 100,
       errors
     };
+  }
+
+  // 현재 사용 중인 모델 정보 반환
+  getCurrentModel(): string | null {
+    return this.workingModel;
+  }
+
+  // 사용 가능한 모델 목록 반환
+  getAvailableModels(): string[] {
+    return [...API_CONFIG.MODELS];
+  }
+
+  // 모델 정보 반환
+  getModelInfo(model: string): ModelInfo | null {
+    return MODEL_INFO[model] || null;
+  }
+
+  // 모든 모델 정보 반환
+  getAllModelInfo(): Record<string, ModelInfo> {
+    return { ...MODEL_INFO };
+  }
+
+  // 현재 선택된 모델 반환
+  getSelectedModel(): string | null {
+    return this.selectedModel;
+  }
+
+  // API 상태 및 설정 정보 반환
+  getServiceStatus() {
+    return {
+      currentModel: this.workingModel,
+      selectedModel: this.selectedModel,
+      availableModels: this.getAvailableModels(),
+      modelInfo: this.getAllModelInfo(),
+      timeoutConfig: API_CONFIG.TIMEOUT,
+      retryConfig: API_CONFIG.RETRY,
+      isConfigured: !!this.apiKey,
+      hasWorkingModel: !!this.workingModel
+    };
+  }
+
+
+  // 네트워크 품질 테스트
+  async testNetworkQuality(): Promise<NetworkQuality> {
+    // 먼저 navigator.onLine으로 빠른 체크
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return {
+        isConnected: false,
+        latency: 0,
+        quality: 'disconnected'
+      };
+    }
+
+    const start = Date.now();
+    const isConnected = await this.checkNetworkConnection();
+    const latency = Date.now() - start;
+
+    let quality: 'excellent' | 'good' | 'poor' | 'disconnected';
+    if (!isConnected) {
+      quality = 'disconnected';
+    } else if (latency < 200) {
+      quality = 'excellent';
+    } else if (latency < 500) {
+      quality = 'good';
+    } else {
+      quality = 'poor';
+    }
+
+    return { isConnected, latency, quality };
   }
 }
 

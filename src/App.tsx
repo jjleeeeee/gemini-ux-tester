@@ -174,9 +174,9 @@ function App() {
       return;
     }
 
-    const apiKey = AuthService.getApiKey();
-    if (!apiKey) {
-      setError('API 키가 없습니다. 다시 로그인해 주세요.');
+    // GeminiApiService 인스턴스 확인
+    if (!geminiApiService) {
+      setError('API 서비스가 설정되지 않았습니다. 다시 로그인해 주세요.');
       setIsAuthenticated(false);
       return;
     }
@@ -199,12 +199,12 @@ function App() {
     setEstimatedTimeRemaining(60);
 
     try {
-      const geminiService = new GeminiApiService(apiKey);
-      geminiService.setSelectedModel(selectedModel);
-      geminiService.setFallbackCallback(handleModelFallback);
+      // 기존 인스턴스 재사용하되 모델 설정 업데이트
+      geminiApiService.setSelectedModel(selectedModel);
+      geminiApiService.setFallbackCallback(handleModelFallback);
       
       // 현재 활성 모델 업데이트
-      setCurrentActiveModel(geminiService.getCurrentModel());
+      setCurrentActiveModel(geminiApiService.getCurrentModel());
       
       // 테스트 분석
       const prompt = buildABTestPrompt(uploadedImages.length, persona, situation);
@@ -234,7 +234,7 @@ function App() {
         }
       };
 
-      const results = await geminiService.analyzeMultipleImages(
+      const results = await geminiApiService.analyzeMultipleImages(
         imagesBase64,
         prompt,
         context,
@@ -247,7 +247,7 @@ function App() {
       setEstimatedTimeRemaining(0);
       
       // 최종 사용된 모델 업데이트
-      setCurrentActiveModel(geminiService.getCurrentModel());
+      setCurrentActiveModel(geminiApiService.getCurrentModel());
     } catch (error: any) {
       console.error('Analysis failed:', error);
       setError(error.message || '분석 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
@@ -270,7 +270,7 @@ function App() {
         }, 3000);
       }
     }
-  }, [hasImages, uploadedImages, persona, situation, getProgressMessage, calculateEstimatedTime, error, analysisStartTime, selectedModel, handleModelFallback]);
+  }, [hasImages, uploadedImages, persona, situation, getProgressMessage, calculateEstimatedTime, error, analysisStartTime, selectedModel, handleModelFallback, geminiApiService]);
 
   const handleExportResults = useCallback(() => {
     if (!analysisResults) return;
@@ -348,7 +348,7 @@ function App() {
           <footer className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-4 py-6">
               <p className="text-center text-sm text-muted-foreground">
-                Made with ❤️ for UX analysis | Powered by Google Gemini AI
+                Made with Jayden for Product Designer | Powered by Google Gemini AI
               </p>
             </div>
           </footer>
@@ -466,9 +466,9 @@ function App() {
             {isAnalyzing && (
               <Card className="border-primary/50 bg-primary/5 animate-slide-in">
                 <CardContent className="pt-6">
-                  <div className="flex items-center justify-center gap-4 py-6">
+                  <div className="flex flex-col items-center justify-center gap-4 py-6 text-center">
                     <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                    <div className="text-center">
+                    <div>
                       <p className="font-medium text-primary mb-2">
                         분석 중입니다...
                       </p>
@@ -502,7 +502,7 @@ function App() {
         <footer className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto px-4 py-6">
             <p className="text-center text-sm text-muted-foreground">
-              Made with ❤️ for UX analysis | Powered by Google Gemini AI
+              Made with Jayden for Product Designer | Powered by Google Gemini AI
             </p>
           </div>
         </footer>
