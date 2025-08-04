@@ -1,70 +1,68 @@
-# 📚 프로젝트 문서 가이드
+# 📚 Gemini UX Tester 프로젝트 문서
 
-## 📁 폴더 구조
+## 📋 프로젝트 개요
+
+**Gemini UX Tester**는 Google Gemini AI를 활용한 UX 이미지 분석 도구입니다.  
+사용자가 업로드한 UI/UX 스크린샷을 AI가 분석하여 전문적인 피드백을 제공합니다.
+
+- **배포 URL**: https://gemini-ux-tester.vercel.app/
+- **GitHub**: https://github.com/jjleeeeee/gemini-ux-tester
+- **기술 스택**: React 19, TypeScript, Tailwind CSS, Google Gemini API
+
+## 🚀 주요 기능
+
+- 🖼️ **이미지 분석**: 최대 3개 이미지 동시 업로드 및 비교 분석
+- 🎭 **퍼소나 기반 분석**: 키워드로 사용자 퍼소나 생성 및 맞춤 분석
+- 🔄 **A/B 테스트**: 여러 화면 비교 분석 및 추천
+- 🤖 **AI 모델 선택**: Gemini 2.5/1.5 Flash/Pro 모델 지원
+- 📱 **반응형 디자인**: 모바일/데스크톱 최적화
+- 🔒 **보안 강화**: API 키 암호화, XSS 방지, CSP 적용
+
+## 📁 문서 구조
 
 ```
-docs/                        # 완료된 프로젝트 문서들
-├── README.md               # 이 파일 (문서화 가이드)
-├── security/               # 보안 관련 문서
-│   ├── summary.md         # 보안 개선 프로젝트 요약
-│   └── implementation-guide.md  # 상세 구현 가이드
-├── features/              # 기능 개발 문서 (예정)
-└── architecture/          # 아키텍처 문서 (예정)
-
-todos/                      # 진행 중인 계획만
-└── (현재 진행 중인 할일들)
-
-archive/                    # 완료된 계획서들 (선택사항)
-└── (완료된 프로젝트 계획서들)
+docs/
+├── README.md              # 이 파일 (프로젝트 개요)
+└── security/              # 보안 구현 문서
+    ├── summary.md         # 보안 개선 요약
+    └── implementation-guide.md  # 상세 구현 가이드
 ```
 
-## 📝 문서 작성 워크플로우
+## 🎯 완료된 주요 개선사항
 
-### 1️⃣ 계획 단계
-- `todos/project-name-plan.md` 생성
-- 목표, 단계별 계획, 체크리스트 작성
+### ✅ 2025-08-04: 프로젝트 안정화 완료
+- **AI 분석 에러 수정**: GeminiApiService 인스턴스 재사용으로 안정성 향상
+- **UI/UX 개선**: 로딩 화면 정렬, 재시도 메시지 제거
+- **성능 최적화**: Gemini API 500 에러 시 fallback 모델 자동 전환
+- **배포 개선**: GitHub Actions 워크플로우 제거, Vercel 자동 배포만 사용
+- **모델 업그레이드**: 기본 모델을 Gemini 2.5 Flash로 변경
 
-### 2️⃣ 진행 단계  
-- 할일 체크리스트 업데이트
-- 진행 상황 기록
+### ✅ 2025-08-02: 보안 및 리팩토링 완료  
+- **보안 강화**: API 키 암호화, XSS 방지, 보안 헤더 적용
+- **코드 품질**: TypeScript 타입 안전성, 에러 핸들링 통합
+- **성능 최적화**: React 19 최적화, Context API 도입
+- **구조 개선**: 설정 파일 통합, 상수화, 테스트 향상
 
-### 3️⃣ 완료 단계
-- **상세 문서**: `docs/category/implementation-guide.md`
-- **요약 문서**: `docs/category/summary.md`  
-- **계획서**: `archive/`로 이동 또는 삭제
+## 📊 현재 프로젝트 상태
 
-## 📋 문서 유형별 가이드
+### 🟢 정상 작동 중
+- **핵심 기능**: AI 분석, 퍼소나 생성, 다중 이미지 업로드 ✅
+- **배포 상태**: Vercel 자동 배포 정상 작동 ✅
+- **성능**: 모든 Gemini 모델 정상 작동 ✅
+- **보안**: 최신 보안 기준 적용 ✅
 
-### 📄 Summary (요약 문서)
-- **목적**: 프로젝트 개요 및 핵심 결과
-- **길이**: 1-2페이지
-- **포함 내용**: 목표, 결과, 주요 기능, 성과 지표
+### 📈 기술 지표
+- **TypeScript 에러**: 0개
+- **ESLint 경고**: 0개  
+- **테스트 통과율**: 100%
+- **빌드 성공**: 에러 없음
 
-### 📖 Implementation Guide (구현 가이드)
-- **목적**: 상세한 기술 문서 및 과정 기록
-- **길이**: 제한 없음
-- **포함 내용**: 단계별 과정, 코드 변경사항, 문제 해결, 테스트 결과
+## 🔗 관련 링크
 
-## 🎯 현재 완료된 프로젝트
-
-### 🔒 보안 개선 (2025-08-02 완료)
-- **요약**: [security/summary.md](./security/summary.md)
-- **상세**: [security/implementation-guide.md](./security/implementation-guide.md)
-- **성과**: API 키 보안 90% 향상, 성능 최적화
-
-## 📋 진행 예정 프로젝트
-
-### 🔧 파일 업로드 기능 개선 (계획 수립 완료)
-- **계획서**: [features/file-upload-improvement-plan.md](./features/file-upload-improvement-plan.md)
-- **목표**: 클릭 선택 기능 수정 + 모바일 카메라/갤러리 접근
-- **예상 소요 시간**: 3시간
-
-### 🖼️ 이미지 압축 최적화 (계획 수립 완료)
-- **계획서**: [features/image-compression-optimization-plan.md](./features/image-compression-optimization-plan.md)
-- **목표**: API 500 에러 해결 + UX 분석 품질 유지
-- **예상 소요 시간**: 8.5시간
-- **우선순위**: 🔴 높음 (현재 서비스 장애)
+- **라이브 데모**: https://gemini-ux-tester.vercel.app/
+- **보안 문서**: [security/summary.md](./security/summary.md)
+- **GitHub 레포지토리**: https://github.com/jjleeeeee/gemini-ux-tester
 
 ---
 
-**💡 팁**: 각 프로젝트마다 summary.md에서 implementation-guide.md로 링크를 연결하여 문서 간 연결성을 유지하세요.
+**🤖 Made with Jayden for Product Designer | Powered by Google Gemini AI**
