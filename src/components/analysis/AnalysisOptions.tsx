@@ -35,7 +35,7 @@ const AnalysisOptions: React.FC<AnalysisOptionsProps> = ({
   situation = '',
   onSituationChange,
   geminiApiService,
-  selectedModel = 'gemini-1.5-flash',
+  selectedModel = 'gemini-2.5-flash',
   onModelChange,
   currentActiveModel
 }) => {

@@ -20,12 +20,12 @@ export const API_CONFIG = {
     BACKOFF_MULTIPLIER: 1.5 // 지수 백오프
   },
   
-  // 모델 설정 (안정적인 순서로 재배치)
+  // 모델 설정 (최신 모델 우선)
   MODELS: [
-    'gemini-1.5-flash',    // 안정적인 모델 (우선 사용)
-    'gemini-1.5-pro',      // 안정적인 고성능 모델
-    'gemini-2.5-flash',    // 최신 모델 (fallback)
-    'gemini-2.5-pro'       // 최신 고성능 모델 (fallback)
+    'gemini-2.5-flash',    // 최신 모델 (기본 사용)
+    'gemini-2.5-pro',      // 최신 고성능 모델
+    'gemini-1.5-flash',    // 안정적인 모델 (fallback)
+    'gemini-1.5-pro'       // 안정적인 고성능 모델 (fallback)
   ] as const,
   
   // 이미지 제한
